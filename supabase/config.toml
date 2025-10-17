@@ -1,0 +1,7 @@
+project_id = "teclwykyodmitnlmvevt"
+
+[functions.optimize-resume]
+verify_jwt = true
+
+[functions.generate-pdf]
+verify_jwt = true
