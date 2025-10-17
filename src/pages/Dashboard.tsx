@@ -4,14 +4,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, LogOut, Upload, Sparkles, Download } from 'lucide-react';
+import { FileText, LogOut, Upload, Sparkles, Download, Settings as SettingsIcon } from 'lucide-react';
 import ResumeUpload from '@/components/ResumeUpload';
 import JobDescriptionForm from '@/components/JobDescriptionForm';
 import OptimizationHistory from '@/components/OptimizationHistory';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [hasResume, setHasResume] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -59,15 +62,22 @@ export default function Dashboard() {
             <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
               <FileText className="w-5 h-5 text-primary-foreground" />
             </div>
-            <div>
-              <h1 className="font-bold text-xl">Resume ATS Optimizer</h1>
-              <p className="text-sm text-muted-foreground">{user?.email}</p>
-            </div>
+          <div>
+            <h1 className="font-bold text-xl">Resume ATS Optimizer</h1>
+            <p className="text-sm text-muted-foreground">{user?.email}</p>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => navigate('/settings')} size="sm">
+            <SettingsIcon className="w-4 h-4 mr-2" />
+            Settings
+          </Button>
+          <ThemeToggle />
           <Button variant="outline" onClick={signOut} size="sm">
             <LogOut className="w-4 h-4 mr-2" />
             Sign Out
           </Button>
+        </div>
         </div>
       </header>
 
