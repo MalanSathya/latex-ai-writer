@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { Sparkles, Download } from 'lucide-react';
 
 export default function JobDescriptionForm() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [title, setTitle] = useState('');
   const [company, setCompany] = useState('');
   const [description, setDescription] = useState('');
@@ -43,17 +43,24 @@ export default function JobDescriptionForm() {
       if (jdError) throw jdError;
 
       // Call AI optimization function
-      const { data: optimizationData, error: optimizationError } = await supabase.functions.invoke(
-        'optimize-resume',
-        {
-          body: {
-            jobDescriptionId: jdData.id,
-          },
-        }
-      );
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+      const response = await fetch('/api/optimize-resume', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ jobDescriptionId: jdData.id }),
+      });
 
-      if (optimizationError) throw optimizationError;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to optimize resume');
+      }
 
+      const optimizationData = await response.json();
       setOptimization(optimizationData);
       toast.success('Resume optimized successfully!');
       
@@ -72,14 +79,22 @@ export default function JobDescriptionForm() {
   const handleDownloadPDF = async () => {
     if (!optimization) return;
 
+    // Note: Ensure your Python backend is running on http://localhost:8000
     try {
-      const { data, error } = await supabase.functions.invoke('generate-pdf', {
-        body: {
-          optimizationId: optimization.id,
+      const response = await fetch('http://localhost:8000/generate-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ latex_content: optimization.optimized_latex }),
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to generate PDF');
+      }
+
+      const data = await response.json();
 
       // Create a blob from the base64 PDF data
       const pdfBlob = await fetch(`data:application/pdf;base64,${data.pdf}`).then(r => r.blob());
@@ -97,7 +112,7 @@ export default function JobDescriptionForm() {
       toast.success('PDF downloaded successfully!');
     } catch (error: any) {
       console.error('Error downloading PDF:', error);
-      toast.error(error.message || 'Failed to generate PDF');
+      toast.error(error.message || 'Failed to generate PDF. Is the Python backend running?');
     }
   };
 

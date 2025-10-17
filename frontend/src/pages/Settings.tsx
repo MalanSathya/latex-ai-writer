@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Settings as SettingsIcon, Save } from 'lucide-react';
+import { Settings as SettingsIcon, Save, ChevronLeft } from 'lucide-react';
 
 export default function Settings() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [aiPrompt, setAiPrompt] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -82,6 +84,10 @@ INSTRUCTIONS:
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
+        <ChevronLeft className="w-4 h-4 mr-2" />
+        Back
+      </Button>
       <Card className="shadow-[var(--shadow-card)]">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
