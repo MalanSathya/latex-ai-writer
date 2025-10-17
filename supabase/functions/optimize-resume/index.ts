@@ -32,6 +32,26 @@ serve(async (req) => {
 
     const { jobDescriptionId } = await req.json();
 
+    // Fetch user settings for custom AI prompt
+    const { data: settings } = await supabase
+      .from('user_settings')
+      .select('ai_prompt')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const customPrompt = settings?.ai_prompt || `You are an expert ATS (Applicant Tracking System) resume optimizer. 
+
+Given the following LaTeX resume and job description, optimize the resume to maximize ATS compatibility while maintaining authenticity.
+
+INSTRUCTIONS:
+1. Identify key keywords and phrases from the job description
+2. Modify the LaTeX resume to incorporate these keywords naturally
+3. Adjust bullet points to align with job requirements
+4. Maintain LaTeX formatting integrity
+5. Keep the changes truthful - don't fabricate experience
+6. Provide an ATS compatibility score (0-100)
+7. Include specific suggestions for improvement`;
+
     // Fetch job description
     const { data: jd, error: jdError } = await supabase
       .from('job_descriptions')
@@ -51,10 +71,8 @@ serve(async (req) => {
 
     if (resumeError) throw resumeError;
 
-    // Call Lovable AI for optimization
-    const aiPrompt = `You are an expert ATS (Applicant Tracking System) resume optimizer. 
-
-Given the following LaTeX resume and job description, optimize the resume to maximize ATS compatibility while maintaining authenticity.
+    // Build AI prompt using custom prompt
+    const aiPrompt = `${customPrompt}
 
 RESUME:
 ${resume.latex_content}
@@ -63,15 +81,6 @@ JOB DESCRIPTION:
 Title: ${jd.title}
 Company: ${jd.company || 'Not specified'}
 Description: ${jd.description}
-
-INSTRUCTIONS:
-1. Identify key keywords and phrases from the job description
-2. Modify the LaTeX resume to incorporate these keywords naturally
-3. Adjust bullet points to align with job requirements
-4. Maintain LaTeX formatting integrity
-5. Keep the changes truthful - don't fabricate experience
-6. Provide an ATS compatibility score (0-100)
-7. Include specific suggestions for improvement
 
 OUTPUT FORMAT:
 Return a JSON object with these fields:
