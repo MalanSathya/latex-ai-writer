@@ -23,6 +23,8 @@ serve(async (req) => {
       );
     }
 
+    console.log('Calling external API with latex length:', latex.length);
+    
     // Call the external LaTeX to PDF API
     const response = await fetch('https://latex-to-pdf.lovable.app/functions/v1/latex-convert', {
       method: 'POST',
@@ -33,10 +35,30 @@ serve(async (req) => {
       body: JSON.stringify({ latex }),
     });
 
+    console.log('External API response status:', response.status);
+    console.log('External API response content-type:', response.headers.get('content-type'));
+
+    const contentType = response.headers.get('content-type');
+    const responseText = await response.text();
+    
+    console.log('Response body (first 500 chars):', responseText.substring(0, 500));
+
     if (!response.ok) {
-      const errorData = await response.json();
+      // Try to parse as JSON, but handle HTML responses
+      let errorMessage = 'Failed to generate PDF';
+      if (contentType?.includes('application/json')) {
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.error || errorData.details || errorMessage;
+        } catch (e) {
+          errorMessage = `API returned error: ${responseText.substring(0, 200)}`;
+        }
+      } else {
+        errorMessage = `API returned HTML error (status ${response.status}). Check your API key or the external service status.`;
+      }
+      
       return new Response(
-        JSON.stringify({ error: errorData.error || 'Failed to generate PDF' }),
+        JSON.stringify({ error: errorMessage }),
         { 
           status: response.status, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -44,7 +66,20 @@ serve(async (req) => {
       );
     }
 
-    const data = await response.json();
+    // Parse successful response
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      console.error('Failed to parse response as JSON:', e);
+      return new Response(
+        JSON.stringify({ error: 'Invalid response format from PDF service' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
 
     return new Response(
       JSON.stringify(data),
