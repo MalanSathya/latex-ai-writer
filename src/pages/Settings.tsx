@@ -67,6 +67,8 @@ INSTRUCTIONS:
         user_id: user.id,
         ai_prompt: aiPrompt,
         latex_api_key: latexApiKey,
+      }, {
+        onConflict: 'user_id'
       });
     
     if (error) {
