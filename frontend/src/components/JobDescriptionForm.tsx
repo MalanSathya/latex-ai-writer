@@ -77,27 +77,43 @@ export default function JobDescriptionForm() {
   };
 
   const handleDownloadPDF = async () => {
-    if (!optimization) return;
+    if (!optimization || !user) return;
 
-    // Note: Ensure your Python backend is running on http://localhost:8000
     try {
-      const response = await fetch('http://localhost:8000/generate-pdf', {
+      // Fetch user's LaTeX API key
+      const { data: settings } = await supabase
+        .from('user_settings')
+        .select('latex_api_key')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!settings?.latex_api_key) {
+        toast.error('Please configure your LaTeX API key in Settings');
+        return;
+      }
+
+      const response = await fetch('https://latex-to-pdf.lovable.app/functions/v1/latex-convert', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-api-key': settings.latex_api_key,
         },
-        body: JSON.stringify({ latex_content: optimization.optimized_latex }),
+        body: JSON.stringify({ latex: optimization.optimized_latex }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to generate PDF');
+        throw new Error(errorData.error || 'Failed to generate PDF');
       }
 
       const data = await response.json();
 
-      // Create a blob from the base64 PDF data
-      const pdfBlob = await fetch(`data:application/pdf;base64,${data.pdf}`).then(r => r.blob());
+      if (!data.success || !data.pdfUrl) {
+        throw new Error('Invalid response from PDF service');
+      }
+
+      // Create a blob from the data URL
+      const pdfBlob = await fetch(data.pdfUrl).then(r => r.blob());
       const url = URL.createObjectURL(pdfBlob);
       
       // Download the file
@@ -112,7 +128,7 @@ export default function JobDescriptionForm() {
       toast.success('PDF downloaded successfully!');
     } catch (error: any) {
       console.error('Error downloading PDF:', error);
-      toast.error(error.message || 'Failed to generate PDF. Is the Python backend running?');
+      toast.error(error.message || 'Failed to generate PDF');
     }
   };
 

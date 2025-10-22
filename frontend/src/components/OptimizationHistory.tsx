@@ -46,16 +46,52 @@ export default function OptimizationHistory() {
   };
 
   const handleDownloadPDF = async (optimizationId: string) => {
+    if (!user) return;
+
     try {
-      const { data, error } = await supabase.functions.invoke('generate-pdf', {
-        body: {
-          optimizationId,
+      // Fetch optimization data
+      const { data: optimization, error: optError } = await supabase
+        .from('optimizations')
+        .select('optimized_latex')
+        .eq('id', optimizationId)
+        .single();
+
+      if (optError) throw optError;
+
+      // Fetch user's LaTeX API key
+      const { data: settings } = await supabase
+        .from('user_settings')
+        .select('latex_api_key')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!settings?.latex_api_key) {
+        toast.error('Please configure your LaTeX API key in Settings');
+        return;
+      }
+
+      const response = await fetch('https://latex-to-pdf.lovable.app/functions/v1/latex-convert', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': settings.latex_api_key,
         },
+        body: JSON.stringify({ latex: optimization.optimized_latex }),
       });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate PDF');
+      }
 
-      const pdfBlob = await fetch(`data:application/pdf;base64,${data.pdf}`).then(r => r.blob());
+      const data = await response.json();
+
+      if (!data.success || !data.pdfUrl) {
+        throw new Error('Invalid response from PDF service');
+      }
+
+      // Create a blob from the data URL
+      const pdfBlob = await fetch(data.pdfUrl).then(r => r.blob());
       const url = URL.createObjectURL(pdfBlob);
       
       const a = document.createElement('a');

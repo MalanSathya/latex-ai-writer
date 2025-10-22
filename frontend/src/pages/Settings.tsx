@@ -5,6 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Settings as SettingsIcon, Save, ChevronLeft } from 'lucide-react';
 
@@ -12,6 +14,7 @@ export default function Settings() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [aiPrompt, setAiPrompt] = useState('');
+  const [latexApiKey, setLatexApiKey] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -24,7 +27,7 @@ export default function Settings() {
     
     const { data, error } = await supabase
       .from('user_settings')
-      .select('ai_prompt')
+      .select('ai_prompt, latex_api_key')
       .eq('user_id', user.id)
       .maybeSingle();
     
@@ -33,6 +36,7 @@ export default function Settings() {
       toast.error('Failed to load settings');
     } else if (data) {
       setAiPrompt(data.ai_prompt);
+      setLatexApiKey(data.latex_api_key || '');
     } else {
       // Use default prompt
       setAiPrompt(`You are an expert ATS (Applicant Tracking System) resume optimizer. 
@@ -62,6 +66,7 @@ INSTRUCTIONS:
       .upsert({
         user_id: user.id,
         ai_prompt: aiPrompt,
+        latex_api_key: latexApiKey,
       });
     
     if (error) {
@@ -99,19 +104,40 @@ INSTRUCTIONS:
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <label className="text-sm font-medium mb-2 block">
-              AI System Prompt
-            </label>
+          <div className="space-y-2">
+            <Label htmlFor="ai-prompt">AI System Prompt</Label>
             <Textarea
+              id="ai-prompt"
               value={aiPrompt}
               onChange={(e) => setAiPrompt(e.target.value)}
               rows={15}
               className="font-mono text-sm"
               placeholder="Enter your custom AI prompt here..."
             />
-            <p className="text-xs text-muted-foreground mt-2">
+            <p className="text-xs text-muted-foreground">
               The prompt should include placeholders for the resume and job description. The AI will use this to optimize your LaTeX resume.
+            </p>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="latex-api-key">LaTeX to PDF API Key</Label>
+            <Input
+              id="latex-api-key"
+              type="password"
+              value={latexApiKey}
+              onChange={(e) => setLatexApiKey(e.target.value)}
+              placeholder="Enter your LaTeX to PDF API key"
+            />
+            <p className="text-xs text-muted-foreground">
+              Get your API key from{' '}
+              <a 
+                href="https://latex-to-pdf.lovable.app" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                latex-to-pdf.lovable.app
+              </a>
             </p>
           </div>
           
