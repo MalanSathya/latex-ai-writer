@@ -70,21 +70,16 @@ export default function OptimizationHistory() {
         return;
       }
 
-      const response = await fetch('https://latex-to-pdf.lovable.app/functions/v1/latex-convert', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': settings.latex_api_key,
+      const { data: proxyData, error: proxyError } = await supabase.functions.invoke('latex-to-pdf-proxy', {
+        body: {
+          latex: optimization.optimized_latex,
+          apiKey: settings.latex_api_key,
         },
-        body: JSON.stringify({ latex: optimization.optimized_latex }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate PDF');
-      }
+      if (proxyError) throw proxyError;
 
-      const data = await response.json();
+      const data = proxyData;
 
       if (!data.success || !data.pdfUrl) {
         throw new Error('Invalid response from PDF service');
