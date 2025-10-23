@@ -26,7 +26,7 @@ serve(async (req) => {
     console.log('Calling external API with latex length:', latex.length);
     
     // Call the external LaTeX to PDF API
-    const response = await fetch('https://latex-to-pdf.lovable.app/functions/v1/latex-convert', {
+    const response = await fetch('https://mynsuwuznnjqwhaurcmk.supabase.co/functions/v1/latex-convert', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
