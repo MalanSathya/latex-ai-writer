@@ -94,7 +94,20 @@ INSTRUCTIONS:
       response_format: { type: 'json_object' }
     });
 
-    const aiContent = JSON.parse(aiResponse.choices[0].message.content);
+    if (!aiResponse || !aiResponse.choices || aiResponse.choices.length === 0 || !aiResponse.choices[0].message || !aiResponse.choices[0].message.content) {
+      throw new Error('Invalid AI response structure');
+    }
+
+    let aiContent;
+    try {
+      aiContent = JSON.parse(aiResponse.choices[0].message.content);
+    } catch (jsonError) {
+      throw new Error(`Failed to parse AI response JSON: ${jsonError.message}`);
+    }
+
+    if (!aiContent.optimized_latex || !aiContent.suggestions || typeof aiContent.ats_score === 'undefined') {
+      throw new Error('Missing expected fields in AI response');
+    }
 
     const { data: optimization, error: optError } = await supabase
       .from('optimizations')
