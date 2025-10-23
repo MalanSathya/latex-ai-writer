@@ -50,7 +50,17 @@ INSTRUCTIONS:
 4. Maintain LaTeX formatting integrity
 5. Keep the changes truthful - don't fabricate experience
 6. Provide an ATS compatibility score (0-100)
-7. Include specific suggestions for improvement`);
+7. Include specific suggestions for improvement
+8. CRITICAL: Properly escape all special LaTeX characters in the output:
+   - Use \& instead of & (ampersand)
+   - Use \$ instead of $ (dollar sign)
+   - Use \% instead of % (percent)
+   - Use \# instead of # (hash)
+   - Use \_ instead of _ (underscore)
+   - Use \{ and \} instead of { } (braces)
+   - Use \textasciitilde{} instead of ~ (tilde)
+   - Use \textasciicircum{} instead of ^ (caret)
+   - Use \textbackslash{} instead of \ (backslash in text)`);
     }
     
     setLoading(false);
