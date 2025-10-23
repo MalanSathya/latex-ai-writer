@@ -43,24 +43,13 @@ export default function JobDescriptionForm() {
       if (jdError) throw jdError;
 
       // Call AI optimization function
-      if (!session) {
-        throw new Error('Not authenticated');
-      }
-      const response = await fetch('/api/optimize-resume', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ jobDescriptionId: jdData.id }),
+      const { data: optimizationData, error: optimizationError } = await supabase.functions.invoke('optimize-resume', {
+        body: { jobDescriptionId: jdData.id },
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to optimize resume');
+      if (optimizationError) {
+        throw new Error(optimizationError.message || 'Failed to optimize resume');
       }
-
-      const optimizationData = await response.json();
       setOptimization(optimizationData);
       toast.success('Resume optimized successfully!');
       
