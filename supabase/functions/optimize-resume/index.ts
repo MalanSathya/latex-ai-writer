@@ -135,7 +135,8 @@ INSTRUCTIONS:
       aiContent = JSON.parse(aiData.choices[0].message.content);
     } catch (jsonError) {
       console.error('Failed to parse AI response:', aiData.choices[0].message.content);
-      throw new Error(`Failed to parse AI response JSON: ${jsonError.message}`);
+      const errorMessage = jsonError instanceof Error ? jsonError.message : 'Unknown parsing error';
+      throw new Error(`Failed to parse AI response JSON: ${errorMessage}`);
     }
 
     if (!aiContent.optimized_latex || !aiContent.suggestions || typeof aiContent.ats_score === 'undefined') {

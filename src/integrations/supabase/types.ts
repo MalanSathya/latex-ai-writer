@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      cover_letters: {
+        Row: {
+          created_at: string
+          id: string
+          is_current: boolean
+          original_content: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_current?: boolean
+          original_content: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_current?: boolean
+          original_content?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       job_descriptions: {
         Row: {
           company: string | null
@@ -52,9 +79,11 @@ export type Database = {
       optimizations: {
         Row: {
           ats_score: number | null
+          cover_letter_id: string | null
           created_at: string
           id: string
           job_description_id: string
+          optimized_cover_letter: string | null
           optimized_latex: string
           resume_id: string
           suggestions: string | null
@@ -62,9 +91,11 @@ export type Database = {
         }
         Insert: {
           ats_score?: number | null
+          cover_letter_id?: string | null
           created_at?: string
           id?: string
           job_description_id: string
+          optimized_cover_letter?: string | null
           optimized_latex: string
           resume_id: string
           suggestions?: string | null
@@ -72,15 +103,24 @@ export type Database = {
         }
         Update: {
           ats_score?: number | null
+          cover_letter_id?: string | null
           created_at?: string
           id?: string
           job_description_id?: string
+          optimized_cover_letter?: string | null
           optimized_latex?: string
           resume_id?: string
           suggestions?: string | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "optimizations_cover_letter_id_fkey"
+            columns: ["cover_letter_id"]
+            isOneToOne: false
+            referencedRelation: "cover_letters"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "optimizations_job_description_id_fkey"
             columns: ["job_description_id"]
