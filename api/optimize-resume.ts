@@ -59,7 +59,15 @@ INSTRUCTIONS:
 1. Identify key keywords and phrases from the job description
 2. Modify the LaTeX resume to incorporate these keywords naturally
 3. Adjust bullet points to align with job requirements
-4. Maintain LaTeX formatting integrity
+4. Maintain LaTeX formatting integrity - CRITICAL: Always escape special LaTeX characters:
+   - Use \\& instead of & (ampersand)
+   - Use \\% instead of % (percent)
+   - Use \\$ instead of $ (dollar sign)
+   - Use \\# instead of # (hash)
+   - Use \\_ instead of _ (underscore)
+   - Use \\{ and \\} instead of { and } (braces)
+   - Use \\textasciitilde for ~ (tilde)
+   - Use \\textasciicircum for ^ (caret)
 5. Keep the changes truthful - don't fabricate experience
 6. Provide an ATS compatibility score (0-100)
 7. Include specific suggestions for improvement`;
