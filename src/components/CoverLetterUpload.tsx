@@ -63,19 +63,22 @@ export default function CoverLetterUpload({ onUploadSuccess }: CoverLetterUpload
           Upload Your Cover Letter
         </CardTitle>
         <CardDescription>
-          Paste your original cover letter content here. It will be used as a template for job-specific optimizations.
+          Paste your LaTeX cover letter content below
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="cover-letter">Cover Letter Content</Label>
+          <Label htmlFor="cover-letter">LaTeX Cover Letter Content</Label>
           <Textarea
             id="cover-letter"
             value={coverLetterContent}
             onChange={(e) => setCoverLetterContent(e.target.value)}
-            placeholder="Enter your cover letter content here..."
-            className="min-h-[300px]"
+            placeholder="Paste your LaTeX cover letter here..."
+            className="min-h-[300px] font-mono text-sm"
           />
+          <p className="text-sm text-muted-foreground">
+            Paste your complete LaTeX cover letter source code here. This will be your master cover letter that we'll optimize for each job application.
+          </p>
         </div>
         <Button onClick={handleUpload} disabled={loading} className="w-full">
           <Upload className="w-4 h-4 mr-2" />
