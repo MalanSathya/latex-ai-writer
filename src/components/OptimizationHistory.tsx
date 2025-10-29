@@ -45,18 +45,25 @@ export default function OptimizationHistory() {
     }
   };
 
-  const handleDownloadPDF = async (optimizationId: string) => {
+  const handleDownloadPDF = async (optimizationId: string, type: 'resume' | 'cover_letter' = 'resume') => {
     if (!user) return;
 
     try {
       // Fetch optimization data
       const { data: optimization, error: optError } = await supabase
         .from('optimizations')
-        .select('optimized_latex')
+        .select('optimized_latex, optimized_cover_letter')
         .eq('id', optimizationId)
         .single();
 
       if (optError) throw optError;
+
+      const latexContent = type === 'resume' ? optimization.optimized_latex : optimization.optimized_cover_letter;
+
+      if (!latexContent) {
+        toast.error(`No optimized ${type === 'resume' ? 'resume' : 'cover letter'} found`);
+        return;
+      }
 
       // Fetch user's LaTeX API key
       const { data: settings } = await supabase
@@ -72,7 +79,7 @@ export default function OptimizationHistory() {
 
       const { data: proxyData, error: proxyError } = await supabase.functions.invoke('latex-to-pdf-proxy', {
         body: {
-          latex: optimization.optimized_latex,
+          latex: latexContent,
           apiKey: settings.latex_api_key,
         },
       });
@@ -91,7 +98,7 @@ export default function OptimizationHistory() {
       
       const a = document.createElement('a');
       a.href = url;
-      a.download = `resume_${optimizationId.slice(0, 8)}.pdf`;
+      a.download = `${type}_${optimizationId.slice(0, 8)}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -148,13 +155,25 @@ export default function OptimizationHistory() {
                   </span>
                 </CardDescription>
               </div>
-              <Button
-                size="sm"
-                onClick={() => handleDownloadPDF(opt.id)}
-              >
-                <Download className="w-4 h-4 mr-2" />
-                PDF
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => handleDownloadPDF(opt.id, 'resume')}
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Resume PDF
+                </Button>
+                {opt.optimized_cover_letter && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDownloadPDF(opt.id, 'cover_letter')}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Cover Letter PDF
+                  </Button>
+                )}
+              </div>
             </div>
           </CardHeader>
           {opt.suggestions && (

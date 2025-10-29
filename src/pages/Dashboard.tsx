@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileText, LogOut, Upload, Sparkles, Download, Settings as SettingsIcon } from 'lucide-react';
 import ResumeUpload from '@/components/ResumeUpload';
+import CoverLetterUpload from '@/components/CoverLetterUpload';
 import JobDescriptionForm from '@/components/JobDescriptionForm';
 import OptimizationHistory from '@/components/OptimizationHistory';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -16,10 +17,12 @@ export default function Dashboard() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [hasResume, setHasResume] = useState(false);
+  const [hasCoverLetter, setHasCoverLetter] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     checkResume();
+    checkCoverLetter();
   }, [user]);
 
   const checkResume = async () => {
@@ -41,9 +44,31 @@ export default function Dashboard() {
     setLoading(false);
   };
 
+  const checkCoverLetter = async () => {
+    if (!user) return;
+    
+    const { data, error } = await supabase
+      .from('cover_letters')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('is_current', true)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Error checking cover letter:', error);
+    } else {
+      setHasCoverLetter(!!data);
+    }
+  };
+
   const handleResumeUploaded = () => {
     setHasResume(true);
     toast.success('Resume uploaded successfully!');
+  };
+
+  const handleCoverLetterUploaded = () => {
+    setHasCoverLetter(true);
+    toast.success('Cover letter uploaded successfully!');
   };
 
   if (loading) {
@@ -99,10 +124,14 @@ export default function Dashboard() {
           </Card>
         ) : (
           <Tabs defaultValue="optimize" className="space-y-6">
-            <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
+            <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-3">
               <TabsTrigger value="optimize">
                 <Sparkles className="w-4 h-4 mr-2" />
                 Optimize
+              </TabsTrigger>
+              <TabsTrigger value="cover-letter">
+                <FileText className="w-4 h-4 mr-2" />
+                Cover Letter
               </TabsTrigger>
               <TabsTrigger value="history">
                 <Download className="w-4 h-4 mr-2" />
@@ -122,6 +151,30 @@ export default function Dashboard() {
                   <JobDescriptionForm />
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="cover-letter" className="space-y-6">
+              {!hasCoverLetter ? (
+                <CoverLetterUpload onUploadSuccess={handleCoverLetterUploaded} />
+              ) : (
+                <Card className="shadow-[var(--shadow-card)]">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-primary" />
+                      Cover Letter Uploaded
+                    </CardTitle>
+                    <CardDescription>
+                      Your cover letter template has been saved. You can update it anytime by uploading a new one.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button onClick={() => setHasCoverLetter(false)} variant="outline" className="w-full">
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload New Cover Letter
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             <TabsContent value="history">

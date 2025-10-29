@@ -1,48 +1,56 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
-import { createClient } from '@supabase/supabase-js';
-import OpenAI from 'openai';
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
-export default async function handler(req, res) {
-  // Set CORS headers for preflight requests
+serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'authorization, x-client-info, apikey, content-type');
-    return res.status(200).json({ message: 'ok' });
+    return new Response(null, { headers: corsHeaders });
   }
 
-  // Set CORS headers for the main request
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'authorization, x-client-info, apikey, content-type');
-
   try {
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const openaiApiKey = process.env.OPENAI_API_KEY;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
-    if (!supabaseUrl || !supabaseKey || !openaiApiKey) {
-      return res.status(500).json({ error: 'Missing environment variables' });
+    if (!openaiApiKey) {
+      return new Response(JSON.stringify({ error: 'OpenAI API key not configured' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const authHeader = req.headers.authorization;
+    const authHeader = req.headers.get('authorization');
     if (!authHeader) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    const { jobDescriptionId } = req.body;
+    const { jobDescriptionId } = await req.json();
 
     if (!jobDescriptionId) {
-      return res.status(400).json({ error: 'Missing jobDescriptionId' });
+      return new Response(JSON.stringify({ error: 'Missing jobDescriptionId' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const { data: settings } = await supabase
@@ -91,26 +99,44 @@ INSTRUCTIONS:
 
     const aiPrompt = `${customPrompt}\n\nRESUME:\n${resume.latex_content}\n\nJOB DESCRIPTION:\nTitle: ${jd.title}\nCompany: ${jd.company || 'Not specified'}\nDescription: ${jd.description}\n\nOUTPUT FORMAT:\nReturn a JSON object with these fields:\n- optimized_latex: The complete optimized LaTeX resume\n- suggestions: A detailed explanation of changes made\n- ats_score: A number between 0-100 representing ATS compatibility`;
 
-    const openai = new OpenAI({ apiKey: openaiApiKey });
-
-    const aiResponse = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        { role: 'system', content: 'You are an expert ATS resume optimizer. Always respond with valid JSON.' },
-        { role: 'user', content: aiPrompt }
-      ],
-      response_format: { type: 'json_object' }
+    console.log('Calling OpenAI API...');
+    
+    const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: 'system', content: 'You are an expert ATS resume optimizer. Always respond with valid JSON.' },
+          { role: 'user', content: aiPrompt }
+        ],
+        response_format: { type: 'json_object' }
+      }),
     });
 
-    if (!aiResponse || !aiResponse.choices || aiResponse.choices.length === 0 || !aiResponse.choices[0].message || !aiResponse.choices[0].message.content) {
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error('OpenAI API error:', aiResponse.status, errorText);
+      throw new Error(`OpenAI API error: ${aiResponse.status}`);
+    }
+
+    const aiData = await aiResponse.json();
+    console.log('OpenAI response received');
+
+    if (!aiData.choices || aiData.choices.length === 0 || !aiData.choices[0].message || !aiData.choices[0].message.content) {
       throw new Error('Invalid AI response structure');
     }
 
     let aiContent;
     try {
-      aiContent = JSON.parse(aiResponse.choices[0].message.content);
+      aiContent = JSON.parse(aiData.choices[0].message.content);
     } catch (jsonError) {
-      throw new Error(`Failed to parse AI response JSON: ${jsonError.message}`);
+      console.error('Failed to parse AI response:', aiData.choices[0].message.content);
+      const errorMessage = jsonError instanceof Error ? jsonError.message : 'Unknown parsing error';
+      throw new Error(`Failed to parse AI response JSON: ${errorMessage}`);
     }
 
     if (!aiContent.optimized_latex || !aiContent.suggestions || typeof aiContent.ats_score === 'undefined') {
@@ -132,11 +158,16 @@ INSTRUCTIONS:
 
     if (optError) throw optError;
 
-    return res.status(200).json(optimization);
+    return new Response(JSON.stringify(optimization), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   } catch (error) {
     console.error('Error in optimize-resume:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    return res.status(500).json({ error: errorMessage });
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
-}
+});
