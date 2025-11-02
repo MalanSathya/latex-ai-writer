@@ -4,11 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, LogOut, Upload, Sparkles, Download, Settings as SettingsIcon } from 'lucide-react';
+import { FileText, LogOut, Upload, Sparkles, Download, Settings as SettingsIcon, Target } from 'lucide-react';
 import ResumeUpload from '@/components/ResumeUpload';
 import CoverLetterUpload from '@/components/CoverLetterUpload';
 import JobDescriptionForm from '@/components/JobDescriptionForm';
 import OptimizationHistory from '@/components/OptimizationHistory';
+import ApplicationTracking from '@/components/ApplicationTracking';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -124,7 +125,7 @@ export default function Dashboard() {
           </Card>
         ) : (
           <Tabs defaultValue="optimize" className="space-y-6">
-            <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-3">
+            <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-4">
               <TabsTrigger value="optimize">
                 <Sparkles className="w-4 h-4 mr-2" />
                 Optimize
@@ -136,6 +137,10 @@ export default function Dashboard() {
               <TabsTrigger value="history">
                 <Download className="w-4 h-4 mr-2" />
                 History
+              </TabsTrigger>
+              <TabsTrigger value="tracking">
+                <Target className="w-4 h-4 mr-2" />
+                Tracking
               </TabsTrigger>
             </TabsList>
 
@@ -179,6 +184,10 @@ export default function Dashboard() {
 
             <TabsContent value="history">
               <OptimizationHistory />
+            </TabsContent>
+
+            <TabsContent value="tracking">
+              <ApplicationTracking />
             </TabsContent>
           </Tabs>
         )}

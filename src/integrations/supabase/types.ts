@@ -14,6 +14,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      applications: {
+        Row: {
+          applied_at: string
+          created_at: string
+          id: string
+          optimization_id: string
+          user_id: string
+        }
+        Insert: {
+          applied_at?: string
+          created_at?: string
+          id?: string
+          optimization_id: string
+          user_id: string
+        }
+        Update: {
+          applied_at?: string
+          created_at?: string
+          id?: string
+          optimization_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_optimization"
+            columns: ["optimization_id"]
+            isOneToOne: false
+            referencedRelation: "optimizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cover_letters: {
         Row: {
           created_at: string
@@ -210,6 +242,7 @@ export type Database = {
         Row: {
           ai_prompt: string
           created_at: string
+          daily_application_target: number | null
           id: string
           latex_api_key: string | null
           updated_at: string
@@ -218,6 +251,7 @@ export type Database = {
         Insert: {
           ai_prompt?: string
           created_at?: string
+          daily_application_target?: number | null
           id?: string
           latex_api_key?: string | null
           updated_at?: string
@@ -226,6 +260,7 @@ export type Database = {
         Update: {
           ai_prompt?: string
           created_at?: string
+          daily_application_target?: number | null
           id?: string
           latex_api_key?: string | null
           updated_at?: string

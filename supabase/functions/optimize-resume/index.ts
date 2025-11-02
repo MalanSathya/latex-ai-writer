@@ -97,7 +97,22 @@ INSTRUCTIONS:
 
     if (resumeError) throw resumeError;
 
-    const aiPrompt = `${customPrompt}\n\nRESUME:\n${resume.latex_content}\n\nJOB DESCRIPTION:\nTitle: ${jd.title}\nCompany: ${jd.company || 'Not specified'}\nDescription: ${jd.description}\n\nOUTPUT FORMAT:\nReturn a JSON object with these fields:\n- optimized_latex: The complete optimized LaTeX resume\n- suggestions: A detailed explanation of changes made\n- ats_score: A number between 0-100 representing ATS compatibility`;
+    // Fetch current cover letter
+    const { data: coverLetter } = await supabase
+      .from('cover_letters')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_current', true)
+      .maybeSingle();
+
+    let aiPrompt = `${customPrompt}\n\nRESUME:\n${resume.latex_content}\n\nJOB DESCRIPTION:\nTitle: ${jd.title}\nCompany: ${jd.company || 'Not specified'}\nDescription: ${jd.description}\n\n`;
+
+    if (coverLetter) {
+      aiPrompt += `COVER LETTER:\n${coverLetter.original_content}\n\n`;
+      aiPrompt += `OUTPUT FORMAT:\nReturn a JSON object with these fields:\n- optimized_latex: The complete optimized LaTeX resume\n- optimized_cover_letter: The complete optimized LaTeX cover letter tailored for this specific job\n- suggestions: A detailed explanation of changes made to both resume and cover letter\n- ats_score: A number between 0-100 representing ATS compatibility`;
+    } else {
+      aiPrompt += `OUTPUT FORMAT:\nReturn a JSON object with these fields:\n- optimized_latex: The complete optimized LaTeX resume\n- suggestions: A detailed explanation of changes made\n- ats_score: A number between 0-100 representing ATS compatibility`;
+    }
 
     console.log('Calling OpenAI API...');
     
@@ -143,16 +158,25 @@ INSTRUCTIONS:
       throw new Error('Missing expected fields in AI response');
     }
 
+    const insertData: any = {
+      user_id: user.id,
+      job_description_id: jobDescriptionId,
+      resume_id: resume.id,
+      optimized_latex: aiContent.optimized_latex,
+      suggestions: aiContent.suggestions,
+      ats_score: aiContent.ats_score,
+    };
+
+    if (coverLetter) {
+      insertData.cover_letter_id = coverLetter.id;
+      if (aiContent.optimized_cover_letter) {
+        insertData.optimized_cover_letter = aiContent.optimized_cover_letter;
+      }
+    }
+
     const { data: optimization, error: optError } = await supabase
       .from('optimizations')
-      .insert({
-        user_id: user.id,
-        job_description_id: jobDescriptionId,
-        resume_id: resume.id,
-        optimized_latex: aiContent.optimized_latex,
-        suggestions: aiContent.suggestions,
-        ats_score: aiContent.ats_score,
-      })
+      .insert(insertData)
       .select()
       .single();
 

@@ -15,6 +15,7 @@ export default function Settings() {
   const navigate = useNavigate();
   const [aiPrompt, setAiPrompt] = useState('');
   const [latexApiKey, setLatexApiKey] = useState('');
+  const [dailyTarget, setDailyTarget] = useState(5);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -27,7 +28,7 @@ export default function Settings() {
     
     const { data, error } = await supabase
       .from('user_settings')
-      .select('ai_prompt, latex_api_key')
+      .select('ai_prompt, latex_api_key, daily_application_target')
       .eq('user_id', user.id)
       .maybeSingle();
     
@@ -37,6 +38,7 @@ export default function Settings() {
     } else if (data) {
       setAiPrompt(data.ai_prompt);
       setLatexApiKey(data.latex_api_key || '');
+      setDailyTarget(data.daily_application_target || 5);
     } else {
       // Use default prompt
       setAiPrompt(`You are an expert ATS (Applicant Tracking System) resume optimizer. 
@@ -77,6 +79,7 @@ INSTRUCTIONS:
         user_id: user.id,
         ai_prompt: aiPrompt,
         latex_api_key: latexApiKey,
+        daily_application_target: dailyTarget,
       }, {
         onConflict: 'user_id'
       });
@@ -150,6 +153,22 @@ INSTRUCTIONS:
               >
                 latex-to-pdf.lovable.app
               </a>
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="daily-target">Daily Application Target</Label>
+            <Input
+              id="daily-target"
+              type="number"
+              min="1"
+              max="50"
+              value={dailyTarget}
+              onChange={(e) => setDailyTarget(parseInt(e.target.value) || 5)}
+              placeholder="Number of applications per day"
+            />
+            <p className="text-xs text-muted-foreground">
+              Set your daily goal for job applications (1-50)
             </p>
           </div>
           
