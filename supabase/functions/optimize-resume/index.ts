@@ -59,15 +59,16 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .maybeSingle();
 
-    const customPrompt = settings?.ai_prompt || `You are an expert ATS (Applicant Tracking System) resume optimizer. 
+    const customPrompt = settings?.ai_prompt || `You are an expert ATS (Applicant Tracking System) resume and cover letter optimizer. 
 
-Given the following LaTeX resume and job description, optimize the resume to maximize ATS compatibility while maintaining authenticity.
+Given the following LaTeX resume, cover letter (if provided), and job description, optimize both the resume and cover letter to maximize ATS compatibility while maintaining authenticity.
 
 INSTRUCTIONS:
 1. Identify key keywords and phrases from the job description
 2. Modify the LaTeX resume to incorporate these keywords naturally
 3. Adjust bullet points to align with job requirements
-4. Maintain LaTeX formatting integrity - CRITICAL: Always escape special LaTeX characters:
+4. For cover letter: tailor it specifically to the job description, highlighting relevant experience and expressing genuine interest
+5. Maintain LaTeX formatting integrity - CRITICAL: Always escape special LaTeX characters:
    - Use \\& instead of & (ampersand)
    - Use \\% instead of % (percent)
    - Use \\$ instead of $ (dollar sign)
@@ -76,9 +77,9 @@ INSTRUCTIONS:
    - Use \\{ and \\} instead of { and } (braces)
    - Use \\textasciitilde for ~ (tilde)
    - Use \\textasciicircum for ^ (caret)
-5. Keep the changes truthful - don't fabricate experience
-6. Provide an ATS compatibility score (0-100)
-7. Include specific suggestions for improvement`;
+6. Keep the changes truthful - don't fabricate experience
+7. Provide an ATS compatibility score (0-100)
+8. Include specific suggestions for improvement for both resume and cover letter`;
 
     const { data: jd, error: jdError } = await supabase
       .from('job_descriptions')

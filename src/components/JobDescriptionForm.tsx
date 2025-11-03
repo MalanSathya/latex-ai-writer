@@ -51,7 +51,9 @@ export default function JobDescriptionForm() {
         throw new Error(optimizationError.message || 'Failed to optimize resume');
       }
       setOptimization(optimizationData);
-      toast.success('Resume optimized successfully!');
+      toast.success(optimizationData.optimized_cover_letter 
+        ? 'Resume and cover letter optimized successfully!' 
+        : 'Resume optimized successfully!');
       
       // Reset form
       setTitle('');
@@ -65,7 +67,7 @@ export default function JobDescriptionForm() {
     }
   };
 
-  const handleDownloadPDF = async () => {
+  const handleDownloadPDF = async (type: 'resume' | 'cover_letter' = 'resume') => {
     if (!optimization || !user) return;
 
     try {
@@ -81,9 +83,13 @@ export default function JobDescriptionForm() {
         return;
       }
 
+      const latexContent = type === 'cover_letter' 
+        ? optimization.optimized_cover_letter 
+        : optimization.optimized_latex;
+
       const { data: proxyData, error: proxyError } = await supabase.functions.invoke('latex-to-pdf-proxy', {
         body: {
-          latex: optimization.optimized_latex,
+          latex: latexContent,
           apiKey: settings.latex_api_key,
         },
       });
@@ -103,13 +109,13 @@ export default function JobDescriptionForm() {
       // Download the file
       const a = document.createElement('a');
       a.href = url;
-      a.download = `resume_${optimization.id.slice(0, 8)}.pdf`;
+      a.download = `${type}_${optimization.id.slice(0, 8)}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      toast.success('PDF downloaded successfully!');
+      toast.success(`${type === 'cover_letter' ? 'Cover letter' : 'Resume'} PDF downloaded successfully!`);
     } catch (error: any) {
       console.error('Error downloading PDF:', error);
       toast.error(error.message || 'Failed to generate PDF');
@@ -153,7 +159,7 @@ export default function JobDescriptionForm() {
         </div>
         <Button type="submit" disabled={loading} className="w-full">
           <Sparkles className="w-4 h-4 mr-2" />
-          {loading ? 'Optimizing...' : 'Optimize Resume'}
+          {loading ? 'Optimizing...' : 'Optimize Resume & Cover Letter'}
         </Button>
       </form>
 
@@ -176,17 +182,35 @@ export default function JobDescriptionForm() {
               </p>
             </div>
             <div>
-              <h4 className="font-semibold mb-2">Optimized LaTeX:</h4>
+              <h4 className="font-semibold mb-2">Optimized Resume LaTeX:</h4>
               <Textarea
                 value={optimization.optimized_latex}
                 readOnly
                 className="min-h-[300px] font-mono text-sm"
               />
             </div>
-            <Button onClick={handleDownloadPDF} className="w-full">
-              <Download className="w-4 h-4 mr-2" />
-              Download PDF
-            </Button>
+            {optimization.optimized_cover_letter && (
+              <div>
+                <h4 className="font-semibold mb-2">Optimized Cover Letter LaTeX:</h4>
+                <Textarea
+                  value={optimization.optimized_cover_letter}
+                  readOnly
+                  className="min-h-[300px] font-mono text-sm"
+                />
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Button onClick={() => handleDownloadPDF('resume')} className="w-full">
+                <Download className="w-4 h-4 mr-2" />
+                Download Resume PDF
+              </Button>
+              {optimization.optimized_cover_letter && (
+                <Button onClick={() => handleDownloadPDF('cover_letter')} className="w-full" variant="outline">
+                  <Download className="w-4 h-4 mr-2" />
+                  Download Cover Letter PDF
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}

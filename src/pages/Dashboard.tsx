@@ -123,16 +123,27 @@ export default function Dashboard() {
               <ResumeUpload onUploadSuccess={handleResumeUploaded} />
             </CardContent>
           </Card>
+        ) : !hasCoverLetter ? (
+          <Card className="max-w-2xl mx-auto shadow-[var(--shadow-card)]">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-primary" />
+                Upload Your Master Cover Letter
+              </CardTitle>
+              <CardDescription>
+                Upload your LaTeX cover letter. We'll optimize it for each job application.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CoverLetterUpload onUploadSuccess={handleCoverLetterUploaded} />
+            </CardContent>
+          </Card>
         ) : (
           <Tabs defaultValue="optimize" className="space-y-6">
-            <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-4">
+            <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-3">
               <TabsTrigger value="optimize">
                 <Sparkles className="w-4 h-4 mr-2" />
                 Optimize
-              </TabsTrigger>
-              <TabsTrigger value="cover-letter">
-                <FileText className="w-4 h-4 mr-2" />
-                Cover Letter
               </TabsTrigger>
               <TabsTrigger value="history">
                 <Download className="w-4 h-4 mr-2" />
@@ -149,37 +160,13 @@ export default function Dashboard() {
                 <CardHeader>
                   <CardTitle>Submit Job Description</CardTitle>
                   <CardDescription>
-                    Paste the job description you're applying for, and our AI will optimize your resume for maximum ATS compatibility.
+                    Paste the job description you're applying for, and our AI will optimize your resume and cover letter for maximum ATS compatibility.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <JobDescriptionForm />
                 </CardContent>
               </Card>
-            </TabsContent>
-
-            <TabsContent value="cover-letter" className="space-y-6">
-              {!hasCoverLetter ? (
-                <CoverLetterUpload onUploadSuccess={handleCoverLetterUploaded} />
-              ) : (
-                <Card className="shadow-[var(--shadow-card)]">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="w-5 h-5 text-primary" />
-                      Cover Letter Uploaded
-                    </CardTitle>
-                    <CardDescription>
-                      Your cover letter template has been saved. You can update it anytime by uploading a new one.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button onClick={() => setHasCoverLetter(false)} variant="outline" className="w-full">
-                      <Upload className="w-4 h-4 mr-2" />
-                      Upload New Cover Letter
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
             </TabsContent>
 
             <TabsContent value="history">
