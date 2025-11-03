@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { Sparkles, Download } from 'lucide-react';
 
@@ -16,6 +17,8 @@ export default function JobDescriptionForm() {
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [optimization, setOptimization] = useState<any>(null);
+  const [showAppliedDialog, setShowAppliedDialog] = useState(false);
+  const [pendingOptimizationId, setPendingOptimizationId] = useState<string | null>(null);
 
   const handleOptimize = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,26 +74,18 @@ export default function JobDescriptionForm() {
     if (!optimization || !user) return;
 
     try {
-      // Fetch user's LaTeX API key
-      const { data: settings } = await supabase
-        .from('user_settings')
-        .select('latex_api_key')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (!settings?.latex_api_key) {
-        toast.error('Please configure your LaTeX API key in Settings');
-        return;
-      }
-
       const latexContent = type === 'cover_letter' 
         ? optimization.optimized_cover_letter 
         : optimization.optimized_latex;
 
-      const { data: proxyData, error: proxyError } = await supabase.functions.invoke('latex-to-pdf-proxy', {
+      if (!latexContent) {
+        toast.error(`No ${type === 'cover_letter' ? 'cover letter' : 'resume'} content available`);
+        return;
+      }
+
+      const { data: proxyData, error: proxyError } = await supabase.functions.invoke('generate-pdf', {
         body: {
           latex: latexContent,
-          apiKey: settings.latex_api_key,
         },
       });
 
@@ -99,7 +94,7 @@ export default function JobDescriptionForm() {
       const data = proxyData;
 
       if (!data.success || !data.pdfUrl) {
-        throw new Error('Invalid response from PDF service');
+        throw new Error(data.error || 'Invalid response from PDF service');
       }
 
       // Create a blob from the data URL
@@ -116,9 +111,36 @@ export default function JobDescriptionForm() {
       URL.revokeObjectURL(url);
 
       toast.success(`${type === 'cover_letter' ? 'Cover letter' : 'Resume'} PDF downloaded successfully!`);
+      
+      // Show dialog to mark as applied
+      setPendingOptimizationId(optimization.id);
+      setShowAppliedDialog(true);
     } catch (error: any) {
       console.error('Error downloading PDF:', error);
       toast.error(error.message || 'Failed to generate PDF');
+    }
+  };
+
+  const handleMarkAsApplied = async () => {
+    if (!user || !pendingOptimizationId) return;
+
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .insert({
+          user_id: user.id,
+          optimization_id: pendingOptimizationId,
+          applied_at: new Date().toISOString(),
+        });
+
+      if (error) throw error;
+
+      toast.success('Application tracked successfully!');
+      setShowAppliedDialog(false);
+      setPendingOptimizationId(null);
+    } catch (error: any) {
+      console.error('Error tracking application:', error);
+      toast.error('Failed to track application');
     }
   };
 
@@ -214,6 +236,25 @@ export default function JobDescriptionForm() {
           </CardContent>
         </Card>
       )}
+
+      <AlertDialog open={showAppliedDialog} onOpenChange={setShowAppliedDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Did you apply for this job?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Mark this application as applied to track it in your dashboard.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingOptimizationId(null)}>
+              Not Yet
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleMarkAsApplied}>
+              Yes, I Applied
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -68,22 +68,9 @@ export default function OptimizationHistory() {
         return;
       }
 
-      // Fetch user's LaTeX API key
-      const { data: settings } = await supabase
-        .from('user_settings')
-        .select('latex_api_key')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (!settings?.latex_api_key) {
-        toast.error('Please configure your LaTeX API key in Settings');
-        return;
-      }
-
-      const { data: proxyData, error: proxyError } = await supabase.functions.invoke('latex-to-pdf-proxy', {
+      const { data: proxyData, error: proxyError } = await supabase.functions.invoke('generate-pdf', {
         body: {
           latex: latexContent,
-          apiKey: settings.latex_api_key,
         },
       });
 

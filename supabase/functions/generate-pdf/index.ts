@@ -29,25 +29,39 @@ serve(async (req) => {
       });
     }
 
-    const { optimizationId } = await req.json();
+    const { optimizationId, latex } = await req.json();
 
-    // Fetch optimization
-    const { data: optimization, error: optError } = await supabase
-      .from('optimizations')
-      .select('*')
-      .eq('id', optimizationId)
-      .eq('user_id', user.id)
-      .single();
+    let latexContent = latex;
 
-    if (optError) throw optError;
+    // If optimizationId provided, fetch from database
+    if (optimizationId && !latex) {
+      // Fetch optimization
+      const { data: optimization, error: optError } = await supabase
+        .from('optimizations')
+        .select('*')
+        .eq('id', optimizationId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (optError) throw optError;
+      latexContent = optimization.optimized_latex;
+    }
+
+    if (!latexContent) {
+      return new Response(JSON.stringify({ error: 'No LaTeX content provided' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
 
     // Use LaTeX.Online API to compile LaTeX to PDF
     const latexApiUrl = 'https://latexonline.cc/compile';
     
     // Create FormData with the LaTeX content
     const formData = new FormData();
-    const latexBlob = new Blob([optimization.optimized_latex], { type: 'text/plain' });
-    formData.append('file', latexBlob, 'resume.tex');
+    const latexBlob = new Blob([latexContent], { type: 'text/plain' });
+    formData.append('file', latexBlob, 'document.tex');
     formData.append('command', 'pdflatex');
 
     const pdfResponse = await fetch(latexApiUrl, {
@@ -62,8 +76,12 @@ serve(async (req) => {
     // Get PDF as buffer
     const pdfBuffer = await pdfResponse.arrayBuffer();
     const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
+    const pdfDataUrl = `data:application/pdf;base64,${pdfBase64}`;
 
-    return new Response(JSON.stringify({ pdf: pdfBase64 }), {
+    return new Response(JSON.stringify({ 
+      success: true, 
+      pdfUrl: pdfDataUrl 
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
