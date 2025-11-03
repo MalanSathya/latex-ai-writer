@@ -55,26 +55,79 @@ serve(async (req) => {
     }
 
 
-    // Use LaTeX.Online API to compile LaTeX to PDF
+    // Sanitize LaTeX (fix unsupported options like 6pt)
+    const sanitizeLatex = (input: string) => {
+      let out = input;
+      // Replace invalid 6pt option with 10pt for article class
+      out = out.replace(/\\documentclass\[(.*?)\]\{article\}/s, (m: string, opts: string) => {
+        const newOpts = opts
+          .split(',')
+          .map((o: string) => (o.trim() === '6pt' ? '10pt' : o.trim()))
+          .filter(Boolean)
+          .join(',');
+        return `\\documentclass[${newOpts}]{article}`;
+      });
+      return out;
+    };
+
+    const safeLatex = sanitizeLatex(latexContent);
+
+    // Try LaTeX.Online API first
     const latexApiUrl = 'https://latexonline.cc/compile';
     
     // Create FormData with the LaTeX content
     const formData = new FormData();
-    const latexBlob = new Blob([latexContent], { type: 'text/plain' });
+    const latexBlob = new Blob([safeLatex], { type: 'text/plain' });
     formData.append('file', latexBlob, 'document.tex');
     formData.append('command', 'pdflatex');
+
+    let pdfBuffer: ArrayBuffer | null = null;
+    let firstError: string | null = null;
 
     const pdfResponse = await fetch(latexApiUrl, {
       method: 'POST',
       body: formData,
     });
 
-    if (!pdfResponse.ok) {
-      throw new Error('Failed to compile LaTeX to PDF');
+    if (pdfResponse.ok) {
+      // Get PDF as buffer
+      pdfBuffer = await pdfResponse.arrayBuffer();
+    } else {
+      try {
+        firstError = await pdfResponse.text();
+      } catch (_) {
+        firstError = 'Unknown compile error from latexonline.cc';
+      }
     }
 
-    // Get PDF as buffer
-    const pdfBuffer = await pdfResponse.arrayBuffer();
+    // Fallback to rtex if first attempt failed
+    if (!pdfBuffer) {
+      const rtexResp = await fetch('https://rtex.probablyaweb.site/api/v2', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: safeLatex, format: 'pdf' }),
+      });
+
+      if (rtexResp.ok) {
+        const rtexData = await rtexResp.json();
+        if (rtexData.status === 'success' && rtexData.result) {
+          // rtex returns base64 PDF
+          const pdfBase64 = rtexData.result as string;
+          const pdfDataUrl = `data:application/pdf;base64,${pdfBase64}`;
+
+          return new Response(JSON.stringify({ 
+            success: true, 
+            pdfUrl: pdfDataUrl 
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+      }
+
+      const details = firstError ? `: ${firstError.slice(0, 500)}` : '';
+      throw new Error(`Failed to compile LaTeX to PDF${details}`);
+    }
+
     const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
     const pdfDataUrl = `data:application/pdf;base64,${pdfBase64}`;
 
