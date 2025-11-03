@@ -71,6 +71,7 @@ serve(async (req) => {
     };
 
     const safeLatex = sanitizeLatex(latexContent);
+    console.log('Sanitized LaTeX:', safeLatex.substring(0, 200));
 
     // Try LaTeX.Online API first
     const latexApiUrl = 'https://latexonline.cc/compile';
@@ -89,12 +90,16 @@ serve(async (req) => {
       body: formData,
     });
 
+    console.log('latexonline.cc response status:', pdfResponse.status);
+
     if (pdfResponse.ok) {
       // Get PDF as buffer
       pdfBuffer = await pdfResponse.arrayBuffer();
+      console.log('PDF buffer size:', pdfBuffer.byteLength);
     } else {
       try {
         firstError = await pdfResponse.text();
+        console.log('latexonline.cc error:', firstError.substring(0, 500));
       } catch (_) {
         firstError = 'Unknown compile error from latexonline.cc';
       }
@@ -102,14 +107,18 @@ serve(async (req) => {
 
     // Fallback to rtex if first attempt failed
     if (!pdfBuffer) {
+      console.log('Trying fallback rtex service...');
       const rtexResp = await fetch('https://rtex.probablyaweb.site/api/v2', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: safeLatex, format: 'pdf' }),
       });
 
+      console.log('rtex response status:', rtexResp.status);
+
       if (rtexResp.ok) {
         const rtexData = await rtexResp.json();
+        console.log('rtex data status:', rtexData.status);
         if (rtexData.status === 'success' && rtexData.result) {
           // rtex returns base64 PDF
           const pdfBase64 = rtexData.result as string;
@@ -121,6 +130,8 @@ serve(async (req) => {
           }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
+        } else {
+          console.log('rtex error:', rtexData.log?.substring(0, 500));
         }
       }
 
