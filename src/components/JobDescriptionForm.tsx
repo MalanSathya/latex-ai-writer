@@ -83,15 +83,31 @@ export default function JobDescriptionForm() {
         return;
       }
 
-      const { data: proxyData, error: proxyError } = await supabase.functions.invoke('generate-pdf', {
+      // Fetch user's LaTeX API key
+      const { data: settings, error: settingsError } = await supabase
+        .from('user_settings')
+        .select('latex_api_key')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (settingsError) throw settingsError;
+
+      const apiKey = settings?.latex_api_key as string | null;
+      if (!apiKey) {
+        toast.error('Please set your LaTeX to PDF API key in Settings.');
+        return;
+      }
+
+      const { data: proxyData, error: proxyError } = await supabase.functions.invoke('latex-to-pdf-proxy', {
         body: {
           latex: latexContent,
+          apiKey,
         },
       });
 
       if (proxyError) throw proxyError;
 
-      const data = proxyData;
+      const data = proxyData as any;
 
       if (!data.success || !data.pdfUrl) {
         throw new Error(data.error || 'Invalid response from PDF service');
