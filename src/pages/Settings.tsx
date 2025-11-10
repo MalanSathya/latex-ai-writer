@@ -8,7 +8,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Settings as SettingsIcon, Save, ChevronLeft } from 'lucide-react';
+import { Settings as SettingsIcon, Save, ChevronLeft, Upload, FileText } from 'lucide-react';
+import ResumeUpload from '@/components/ResumeUpload';
+import CoverLetterUpload from '@/components/CoverLetterUpload';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -179,6 +181,38 @@ INSTRUCTIONS:
         </CardContent>
       </Card>
 
+      <div className="mt-8 grid grid-cols-1 gap-6">
+        <Card className="shadow-[var(--shadow-card)]">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Upload className="w-5 h-5 text-primary" />
+              Master Resume
+            </CardTitle>
+            <CardDescription>
+              Update your one true LaTeX resume. New uploads become the current master.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResumeUpload onUploadSuccess={() => toast.success('Master resume updated')} />
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-[var(--shadow-card)]">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              Master Cover Letter
+            </CardTitle>
+            <CardDescription>
+              Update your one true LaTeX cover letter. New uploads become the current master.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CoverLetterUpload onUploadSuccess={() => toast.success('Master cover letter updated')} />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
+

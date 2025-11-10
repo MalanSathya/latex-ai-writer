@@ -25,6 +25,13 @@ export default function ResumeUpload({ onUploadSuccess }: ResumeUploadProps) {
     setLoading(true);
 
     try {
+      // Set previous current resumes to false
+      await supabase
+        .from('resumes')
+        .update({ is_current: false })
+        .eq('user_id', user.id)
+        .eq('is_current', true);
+
       const { error } = await supabase.from('resumes').insert({
         user_id: user.id,
         latex_content: latexContent,

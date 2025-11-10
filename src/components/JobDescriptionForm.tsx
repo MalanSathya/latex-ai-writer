@@ -19,6 +19,9 @@ export default function JobDescriptionForm() {
   const [optimization, setOptimization] = useState<any>(null);
   const [showAppliedDialog, setShowAppliedDialog] = useState(false);
   const [pendingOptimizationId, setPendingOptimizationId] = useState<string | null>(null);
+  const [resumePdfUrl, setResumePdfUrl] = useState<string | null>(null);
+  const [coverPdfUrl, setCoverPdfUrl] = useState<string | null>(null);
+  const [compiling, setCompiling] = useState(false);
 
   const handleOptimize = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +60,16 @@ export default function JobDescriptionForm() {
       toast.success(optimizationData.optimized_cover_letter 
         ? 'Resume and cover letter optimized successfully!' 
         : 'Resume optimized successfully!');
+
+      // Compile previews
+      setCompiling(true);
+      const resumeUrl = await compileLatexToPdf(optimizationData.optimized_latex);
+      setResumePdfUrl(resumeUrl);
+      if (optimizationData.optimized_cover_letter) {
+        const coverUrl = await compileLatexToPdf(optimizationData.optimized_cover_letter);
+        setCoverPdfUrl(coverUrl);
+      }
+      setCompiling(false);
       
       // Reset form
       setTitle('');
@@ -67,6 +80,36 @@ export default function JobDescriptionForm() {
       toast.error(error.message || 'Failed to optimize resume');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const compileLatexToPdf = async (latex: string): Promise<string | null> => {
+    if (!user) return null;
+    try {
+      const { data: settings, error: settingsError } = await supabase
+        .from('user_settings')
+        .select('latex_api_key')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (settingsError) throw settingsError;
+      const apiKey = (settings?.latex_api_key as string) || '';
+      if (!apiKey) {
+        toast.error('Please set your LaTeX to PDF API key in Settings.');
+        return null;
+      }
+      const { data: proxyData, error: proxyError } = await supabase.functions.invoke('latex-to-pdf-proxy', {
+        body: { latex, apiKey },
+      });
+      if (proxyError) throw proxyError;
+      const data = proxyData as any;
+      if (!data.success || !data.pdfUrl) {
+        throw new Error(data.error || 'Invalid response from PDF service');
+      }
+      return data.pdfUrl as string;
+    } catch (err: any) {
+      console.error('Error compiling LaTeX:', err);
+      toast.error(err.message || 'Failed to compile PDF');
+      return null;
     }
   };
 
@@ -237,6 +280,47 @@ export default function JobDescriptionForm() {
                 />
               </div>
             )}
+            <div className="space-y-2">
+              <h4 className="font-semibold mb-2">Live PDF Preview</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Resume Preview</Label>
+                  {compiling && !resumePdfUrl ? (
+                    <div className="text-sm text-muted-foreground">Compiling resume...</div>
+                  ) : resumePdfUrl ? (
+                    <iframe src={resumePdfUrl} className="w-full h-96 rounded border" title="Resume Preview" />
+                  ) : (
+                    <Button variant="outline" onClick={async () => {
+                      if (optimization?.optimized_latex) {
+                        setCompiling(true);
+                        const url = await compileLatexToPdf(optimization.optimized_latex);
+                        setResumePdfUrl(url);
+                        setCompiling(false);
+                      }
+                    }}>Compile Resume</Button>
+                  )}
+                </div>
+                {optimization.optimized_cover_letter && (
+                  <div className="space-y-2">
+                    <Label>Cover Letter Preview</Label>
+                    {compiling && !coverPdfUrl ? (
+                      <div className="text-sm text-muted-foreground">Compiling cover letter...</div>
+                    ) : coverPdfUrl ? (
+                      <iframe src={coverPdfUrl} className="w-full h-96 rounded border" title="Cover Letter Preview" />
+                    ) : (
+                      <Button variant="outline" onClick={async () => {
+                        if (optimization?.optimized_cover_letter) {
+                          setCompiling(true);
+                          const url = await compileLatexToPdf(optimization.optimized_cover_letter);
+                          setCoverPdfUrl(url);
+                          setCompiling(false);
+                        }
+                      }}>Compile Cover Letter</Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Button onClick={() => handleDownloadPDF('resume')} className="w-full">
                 <Download className="w-4 h-4 mr-2" />
