@@ -23,7 +23,23 @@ serve(async (req) => {
       );
     }
 
-    console.log('Calling external API with latex length:', latex.length);
+    // Sanitize LaTeX by escaping special characters that aren't already escaped
+    const sanitizeLatex = (input: string): string => {
+      let output = input;
+      
+      // Escape # characters that aren't already escaped or part of LaTeX commands
+      // Match # that's not preceded by backslash
+      output = output.replace(/(?<!\\)#/g, '\\#');
+      
+      // Escape other common special characters if not already escaped
+      output = output.replace(/(?<!\\)&/g, '\\&');
+      output = output.replace(/(?<!\\)%/g, '\\%');
+      
+      return output;
+    };
+
+    const sanitizedLatex = sanitizeLatex(latex);
+    console.log('Calling external API with latex length:', sanitizedLatex.length);
     
     // Call the external LaTeX to PDF API with binary format support
     const response = await fetch('https://mynsuwuznnjqwhaurcmk.supabase.co/functions/v1/latex-convert?format=binary', {
@@ -33,7 +49,7 @@ serve(async (req) => {
         'Accept': 'application/pdf',
         'x-api-key': apiKey,
       },
-      body: JSON.stringify({ latex }),
+      body: JSON.stringify({ latex: sanitizedLatex }),
     });
 
     console.log('External API response status:', response.status);
