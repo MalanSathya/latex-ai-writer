@@ -262,65 +262,76 @@ export default function JobDescriptionForm() {
                 {optimization.suggestions}
               </p>
             </div>
-            <div>
-              <h4 className="font-semibold mb-2">Optimized Resume LaTeX:</h4>
-              <Textarea
-                value={optimization.optimized_latex}
-                readOnly
-                className="min-h-[300px] font-mono text-sm"
-              />
-            </div>
-            {optimization.optimized_cover_letter && (
-              <div>
-                <h4 className="font-semibold mb-2">Optimized Cover Letter LaTeX:</h4>
-                <Textarea
-                  value={optimization.optimized_cover_letter}
-                  readOnly
-                  className="min-h-[300px] font-mono text-sm"
-                />
-              </div>
-            )}
-            <div className="space-y-2">
-              <h4 className="font-semibold mb-2">Live PDF Preview</h4>
+            <div className="space-y-4">
+              <h4 className="font-semibold">Resume</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Resume Preview</Label>
-                  {compiling && !resumePdfUrl ? (
-                    <div className="text-sm text-muted-foreground">Compiling resume...</div>
-                  ) : resumePdfUrl ? (
-                    <iframe src={resumePdfUrl} className="w-full h-96 rounded border" title="Resume Preview" />
-                  ) : (
-                    <Button variant="outline" onClick={async () => {
-                      if (optimization?.optimized_latex) {
-                        setCompiling(true);
-                        const url = await compileLatexToPdf(optimization.optimized_latex);
-                        setResumePdfUrl(url);
-                        setCompiling(false);
-                      }
-                    }}>Compile Resume</Button>
-                  )}
+                  <Label>LaTeX Code</Label>
+                  <Textarea
+                    value={optimization.optimized_latex}
+                    readOnly
+                    className="min-h-[400px] font-mono text-sm"
+                  />
                 </div>
-                {optimization.optimized_cover_letter && (
-                  <div className="space-y-2">
-                    <Label>Cover Letter Preview</Label>
-                    {compiling && !coverPdfUrl ? (
-                      <div className="text-sm text-muted-foreground">Compiling cover letter...</div>
-                    ) : coverPdfUrl ? (
-                      <iframe src={coverPdfUrl} className="w-full h-96 rounded border" title="Cover Letter Preview" />
-                    ) : (
+                <div className="space-y-2">
+                  <Label>PDF Preview</Label>
+                  {compiling && !resumePdfUrl ? (
+                    <div className="flex items-center justify-center min-h-[400px] border rounded">
+                      <div className="text-sm text-muted-foreground">Compiling resume...</div>
+                    </div>
+                  ) : resumePdfUrl ? (
+                    <iframe src={resumePdfUrl} className="w-full min-h-[400px] rounded border" title="Resume Preview" />
+                  ) : (
+                    <div className="flex items-center justify-center min-h-[400px] border rounded">
                       <Button variant="outline" onClick={async () => {
-                        if (optimization?.optimized_cover_letter) {
+                        if (optimization?.optimized_latex) {
                           setCompiling(true);
-                          const url = await compileLatexToPdf(optimization.optimized_cover_letter);
-                          setCoverPdfUrl(url);
+                          const url = await compileLatexToPdf(optimization.optimized_latex);
+                          setResumePdfUrl(url);
                           setCompiling(false);
                         }
-                      }}>Compile Cover Letter</Button>
-                    )}
-                  </div>
-                )}
+                      }}>Compile Resume</Button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
+            {optimization.optimized_cover_letter && (
+              <div className="space-y-4">
+                <h4 className="font-semibold">Cover Letter</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>LaTeX Code</Label>
+                    <Textarea
+                      value={optimization.optimized_cover_letter}
+                      readOnly
+                      className="min-h-[400px] font-mono text-sm"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>PDF Preview</Label>
+                    {compiling && !coverPdfUrl ? (
+                      <div className="flex items-center justify-center min-h-[400px] border rounded">
+                        <div className="text-sm text-muted-foreground">Compiling cover letter...</div>
+                      </div>
+                    ) : coverPdfUrl ? (
+                      <iframe src={coverPdfUrl} className="w-full min-h-[400px] rounded border" title="Cover Letter Preview" />
+                    ) : (
+                      <div className="flex items-center justify-center min-h-[400px] border rounded">
+                        <Button variant="outline" onClick={async () => {
+                          if (optimization?.optimized_cover_letter) {
+                            setCompiling(true);
+                            const url = await compileLatexToPdf(optimization.optimized_cover_letter);
+                            setCoverPdfUrl(url);
+                            setCompiling(false);
+                          }
+                        }}>Compile Cover Letter</Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Button onClick={() => handleDownloadPDF('resume')} className="w-full">
                 <Download className="w-4 h-4 mr-2" />
