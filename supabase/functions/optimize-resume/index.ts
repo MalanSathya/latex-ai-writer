@@ -55,7 +55,7 @@ serve(async (req) => {
 
     const { data: settings } = await supabase
       .from('user_settings')
-      .select('ai_prompt')
+      .select('ai_prompt, mistral_api_key')
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -117,7 +117,7 @@ INSTRUCTIONS:
 
     console.log('Calling OpenAI API...');
     
-    const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    let aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openaiApiKey}`,
@@ -133,10 +133,36 @@ INSTRUCTIONS:
       }),
     });
 
+    // Check for rate limiting and fallback to Mistral
+    if (aiResponse.status === 429) {
+      console.log('OpenAI rate limited. Trying Mistral fallback.');
+      
+      const mistralApiKey = settings?.mistral_api_key;
+      if (!mistralApiKey) {
+        throw new Error('OpenAI is rate-limited, but no Mistral API key is configured.');
+      }
+
+      aiResponse = await fetch('https://api.mistral.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${mistralApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: "mistral-small-latest",
+          messages: [
+            { role: 'system', content: 'You are an expert ATS resume optimizer. Always respond with valid JSON.' },
+            { role: 'user', content: aiPrompt }
+          ],
+          response_format: { type: 'json_object' }
+        }),
+      });
+    }
+
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error('OpenAI API error:', aiResponse.status, errorText);
-      throw new Error(`OpenAI API error: ${aiResponse.status}`);
+      console.error('AI API error:', aiResponse.status, errorText);
+      throw new Error(`AI API error: ${aiResponse.status}`);
     }
 
     const aiData = await aiResponse.json();

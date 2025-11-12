@@ -245,6 +245,7 @@ export type Database = {
           daily_application_target: number | null
           id: string
           latex_api_key: string | null
+          mistral_api_key: string | null
           updated_at: string
           user_id: string
         }
@@ -254,6 +255,7 @@ export type Database = {
           daily_application_target?: number | null
           id?: string
           latex_api_key?: string | null
+          mistral_api_key?: string | null
           updated_at?: string
           user_id: string
         }
@@ -263,6 +265,7 @@ export type Database = {
           daily_application_target?: number | null
           id?: string
           latex_api_key?: string | null
+          mistral_api_key?: string | null
           updated_at?: string
           user_id?: string
         }

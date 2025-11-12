@@ -17,6 +17,7 @@ export default function Settings() {
   const navigate = useNavigate();
   const [aiPrompt, setAiPrompt] = useState('');
   const [latexApiKey, setLatexApiKey] = useState('');
+  const [mistralApiKey, setMistralApiKey] = useState('');
   const [dailyTarget, setDailyTarget] = useState(5);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -30,7 +31,7 @@ export default function Settings() {
     
     const { data, error } = await supabase
       .from('user_settings')
-      .select('ai_prompt, latex_api_key, daily_application_target')
+      .select('ai_prompt, latex_api_key, mistral_api_key, daily_application_target')
       .eq('user_id', user.id)
       .maybeSingle();
     
@@ -40,6 +41,7 @@ export default function Settings() {
     } else if (data) {
       setAiPrompt(data.ai_prompt);
       setLatexApiKey(data.latex_api_key || '');
+      setMistralApiKey(data.mistral_api_key || '');
       setDailyTarget(data.daily_application_target || 5);
     } else {
       // Use default prompt
@@ -81,6 +83,7 @@ INSTRUCTIONS:
         user_id: user.id,
         ai_prompt: aiPrompt,
         latex_api_key: latexApiKey,
+        mistral_api_key: mistralApiKey || null,
         daily_application_target: dailyTarget,
       }, {
         onConflict: 'user_id'
@@ -155,6 +158,20 @@ INSTRUCTIONS:
               >
                 latex-to-pdf.lovable.app
               </a>
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="mistral-api-key">Mistral API Key</Label>
+            <Input
+              id="mistral-api-key"
+              type="password"
+              value={mistralApiKey}
+              onChange={(e) => setMistralApiKey(e.target.value)}
+              placeholder="Optional: Your Mistral AI API key"
+            />
+            <p className="text-xs text-muted-foreground">
+              Your API key from Mistral AI. This will be used as a fallback if OpenAI is rate-limited.
             </p>
           </div>
 
