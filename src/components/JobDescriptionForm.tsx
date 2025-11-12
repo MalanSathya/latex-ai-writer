@@ -280,6 +280,10 @@ export default function JobDescriptionForm() {
                   )}
                 </div>
               </div>
+              <Button onClick={() => handleDownloadPDF('resume')} className="w-full mt-4">
+                <Download className="w-4 h-4 mr-2" />
+                Download Resume PDF
+              </Button>
             </div>
             {optimization.optimized_cover_letter && (
               <div className="space-y-4">
@@ -315,20 +319,12 @@ export default function JobDescriptionForm() {
                     )}
                   </div>
                 </div>
-              </div>
-            )}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Button onClick={() => handleDownloadPDF('resume')} className="w-full">
-                <Download className="w-4 h-4 mr-2" />
-                Download Resume PDF
-              </Button>
-              {optimization.optimized_cover_letter && (
-                <Button onClick={() => handleDownloadPDF('cover_letter')} className="w-full" variant="outline">
+                <Button onClick={() => handleDownloadPDF('cover_letter')} className="w-full mt-4" variant="outline">
                   <Download className="w-4 h-4 mr-2" />
                   Download Cover Letter PDF
                 </Button>
-              )}
-            </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

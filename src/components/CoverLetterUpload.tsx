@@ -4,9 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { toast } from 'sonner';
-import { FileText, Upload } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import { latexContentSchema } from '@/lib/validation';
 
 interface CoverLetterUploadProps {
@@ -65,35 +65,24 @@ export default function CoverLetterUpload({ onUploadSuccess }: CoverLetterUpload
   };
 
   return (
-    <Card className="shadow-[var(--shadow-card)]">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="w-5 h-5 text-primary" />
-          Upload Your Cover Letter
-        </CardTitle>
-        <CardDescription>
-          Paste your LaTeX cover letter content below
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="cover-letter">LaTeX Cover Letter Content</Label>
-          <Textarea
-            id="cover-letter"
-            value={coverLetterContent}
-            onChange={(e) => setCoverLetterContent(e.target.value)}
-            placeholder="Paste your LaTeX cover letter here..."
-            className="min-h-[300px] font-mono text-sm"
-          />
-          <p className="text-sm text-muted-foreground">
-            Paste your complete LaTeX cover letter source code here. This will be your master cover letter that we'll optimize for each job application.
-          </p>
-        </div>
-        <Button onClick={handleUpload} disabled={loading} className="w-full">
-          <Upload className="w-4 h-4 mr-2" />
-          {loading ? 'Uploading...' : 'Upload Cover Letter'}
-        </Button>
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="cover-letter">LaTeX Cover Letter Content</Label>
+        <Textarea
+          id="cover-letter"
+          value={coverLetterContent}
+          onChange={(e) => setCoverLetterContent(e.target.value)}
+          placeholder="Paste your LaTeX cover letter here..."
+          className="min-h-[300px] font-mono text-sm"
+        />
+        <p className="text-sm text-muted-foreground">
+          Paste your complete LaTeX cover letter source code here. This will be your master cover letter that we'll optimize for each job application.
+        </p>
+      </div>
+      <Button onClick={handleUpload} disabled={loading} className="w-full">
+        <Upload className="w-4 h-4 mr-2" />
+        {loading ? 'Uploading...' : 'Upload Cover Letter'}
+      </Button>
+    </div>
   );
 }
