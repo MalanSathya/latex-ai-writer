@@ -20,6 +20,7 @@ export default function Dashboard() {
   const [hasResume, setHasResume] = useState(false);
   const [hasCoverLetter, setHasCoverLetter] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [resendLoading, setResendLoading] = useState(false);
 
   useEffect(() => {
     checkResume();
@@ -72,10 +73,57 @@ export default function Dashboard() {
     toast.success('Cover letter uploaded successfully!');
   };
 
+  const handleResendVerification = async () => {
+    if (!user?.email) return;
+    
+    setResendLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: user.email,
+        options: {
+          emailRedirectTo: window.location.origin
+        }
+      });
+      
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success('Verification email sent! Please check your inbox.');
+      }
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-pulse">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user?.email_confirmed_at) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20">
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle>Please Verify Your Email</CardTitle>
+            <CardDescription>
+              Your account is not verified. Click the button to send a new verification link.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={handleResendVerification} 
+              disabled={resendLoading}
+              className="w-full"
+            >
+              {resendLoading ? 'Sending...' : 'Resend Verification Email'}
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
