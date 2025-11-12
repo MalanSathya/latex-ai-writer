@@ -54,6 +54,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     });
     
+    if (!error) {
+      await supabase.auth.signOut();
+    }
+    
     return { error };
   };
 
