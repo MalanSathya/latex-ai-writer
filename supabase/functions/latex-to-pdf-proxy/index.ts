@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,11 +12,69 @@ serve(async (req) => {
   }
 
   try {
-    const { latex, apiKey } = await req.json();
-
-    if (!latex || !apiKey) {
+    // Authenticate user
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'Missing latex content or API key' }),
+        JSON.stringify({ error: 'Unauthorized' }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication' }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    const { latex } = await req.json();
+
+    if (!latex) {
+      return new Response(
+        JSON.stringify({ error: 'Missing latex content' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Fetch API key from user settings server-side
+    const { data: settings, error: settingsError } = await supabaseClient
+      .from('user_settings')
+      .select('latex_api_key')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (settingsError) {
+      console.error('Error fetching settings:', settingsError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch user settings' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    const apiKey = settings?.latex_api_key;
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({ error: 'LaTeX API key not configured. Please add it in Settings.' }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

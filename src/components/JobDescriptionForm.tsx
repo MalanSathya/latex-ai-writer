@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { jobDescriptionSchema } from '@/lib/validation';
 import { Sparkles, Download } from 'lucide-react';
 
 export default function JobDescriptionForm() {
@@ -25,8 +26,19 @@ export default function JobDescriptionForm() {
 
   const handleOptimize = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !description.trim()) {
-      toast.error('Please fill in all required fields');
+
+    if (!user) return;
+
+    // Validate inputs
+    const validation = jobDescriptionSchema.safeParse({
+      title,
+      company: company || undefined,
+      description,
+    });
+
+    if (!validation.success) {
+      const firstError = validation.error.errors[0];
+      toast.error(firstError.message);
       return;
     }
 
@@ -86,19 +98,8 @@ export default function JobDescriptionForm() {
   const compileLatexToPdf = async (latex: string): Promise<string | null> => {
     if (!user) return null;
     try {
-      const { data: settings, error: settingsError } = await supabase
-        .from('user_settings')
-        .select('latex_api_key')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      if (settingsError) throw settingsError;
-      const apiKey = (settings?.latex_api_key as string) || '';
-      if (!apiKey) {
-        toast.error('Please set your LaTeX to PDF API key in Settings.');
-        return null;
-      }
       const { data: proxyData, error: proxyError } = await supabase.functions.invoke('latex-to-pdf-proxy', {
-        body: { latex, apiKey },
+        body: { latex },
       });
       if (proxyError) throw proxyError;
       const data = proxyData as any;
@@ -126,25 +127,9 @@ export default function JobDescriptionForm() {
         return;
       }
 
-      // Fetch user's LaTeX API key
-      const { data: settings, error: settingsError } = await supabase
-        .from('user_settings')
-        .select('latex_api_key')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (settingsError) throw settingsError;
-
-      const apiKey = settings?.latex_api_key as string | null;
-      if (!apiKey) {
-        toast.error('Please set your LaTeX to PDF API key in Settings.');
-        return;
-      }
-
       const { data: proxyData, error: proxyError } = await supabase.functions.invoke('latex-to-pdf-proxy', {
         body: {
           latex: latexContent,
-          apiKey,
         },
       });
 

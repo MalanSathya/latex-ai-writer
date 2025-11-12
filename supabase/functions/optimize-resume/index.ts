@@ -2,6 +2,16 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
+// Input validation helpers
+const MAX_JOB_TITLE_LENGTH = 200;
+const MAX_COMPANY_LENGTH = 200;
+const MAX_DESCRIPTION_LENGTH = 50000;
+const MAX_LATEX_LENGTH = 100000;
+
+function validateJobDescriptionId(id: string): boolean {
+  return typeof id === 'string' && id.length > 0 && id.length <= 100;
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -46,8 +56,9 @@ serve(async (req) => {
 
     const { jobDescriptionId } = await req.json();
 
-    if (!jobDescriptionId) {
-      return new Response(JSON.stringify({ error: 'Missing jobDescriptionId' }), {
+    // Validate input
+    if (!validateJobDescriptionId(jobDescriptionId)) {
+      return new Response(JSON.stringify({ error: 'Invalid job description ID' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -105,6 +116,23 @@ INSTRUCTIONS:
       .eq('user_id', user.id)
       .eq('is_current', true)
       .maybeSingle();
+
+    // Validate data lengths
+    if (jd.title && jd.title.length > MAX_JOB_TITLE_LENGTH) {
+      throw new Error('Job title exceeds maximum length');
+    }
+    if (jd.company && jd.company.length > MAX_COMPANY_LENGTH) {
+      throw new Error('Company name exceeds maximum length');
+    }
+    if (jd.description.length > MAX_DESCRIPTION_LENGTH) {
+      throw new Error('Job description exceeds maximum length');
+    }
+    if (resume.latex_content.length > MAX_LATEX_LENGTH) {
+      throw new Error('Resume content exceeds maximum length');
+    }
+    if (coverLetter?.original_content && coverLetter.original_content.length > MAX_LATEX_LENGTH) {
+      throw new Error('Cover letter content exceeds maximum length');
+    }
 
     let aiPrompt = `${customPrompt}\n\nRESUME:\n${resume.latex_content}\n\nJOB DESCRIPTION:\nTitle: ${jd.title}\nCompany: ${jd.company || 'Not specified'}\nDescription: ${jd.description}\n\n`;
 

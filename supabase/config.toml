@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.generate-pdf]
 verify_jwt = true
+
+[functions.latex-to-pdf-proxy]
+verify_jwt = true

@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Upload } from 'lucide-react';
+import { latexContentSchema } from '@/lib/validation';
 
 interface ResumeUploadProps {
   onUploadSuccess: () => void;
@@ -19,6 +20,14 @@ export default function ResumeUpload({ onUploadSuccess }: ResumeUploadProps) {
   const handleUpload = async () => {
     if (!user || !latexContent.trim()) {
       toast.error('Please enter your LaTeX resume content');
+      return;
+    }
+
+    // Validate LaTeX content
+    const validation = latexContentSchema.safeParse({ content: latexContent });
+    if (!validation.success) {
+      const firstError = validation.error.errors[0];
+      toast.error(firstError.message);
       return;
     }
 

@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { FileText, Upload } from 'lucide-react';
+import { latexContentSchema } from '@/lib/validation';
 
 interface CoverLetterUploadProps {
   onUploadSuccess: () => void;
@@ -20,6 +21,14 @@ export default function CoverLetterUpload({ onUploadSuccess }: CoverLetterUpload
   const handleUpload = async () => {
     if (!user || !coverLetterContent.trim()) {
       toast.error('Please enter your cover letter content');
+      return;
+    }
+
+    // Validate LaTeX content
+    const validation = latexContentSchema.safeParse({ content: coverLetterContent });
+    if (!validation.success) {
+      const firstError = validation.error.errors[0];
+      toast.error(firstError.message);
       return;
     }
 

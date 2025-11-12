@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Settings as SettingsIcon, Save, ChevronLeft, Upload, FileText } from 'lucide-react';
 import ResumeUpload from '@/components/ResumeUpload';
 import CoverLetterUpload from '@/components/CoverLetterUpload';
+import { settingsSchema } from '@/lib/validation';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -75,6 +76,20 @@ INSTRUCTIONS:
   const handleSave = async () => {
     if (!user) return;
     
+    // Validate inputs
+    const validation = settingsSchema.safeParse({
+      aiPrompt,
+      latexApiKey: latexApiKey || undefined,
+      mistralApiKey: mistralApiKey || undefined,
+      dailyTarget,
+    });
+
+    if (!validation.success) {
+      const firstError = validation.error.errors[0];
+      toast.error(firstError.message);
+      return;
+    }
+
     setSaving(true);
     
     const { error } = await supabase

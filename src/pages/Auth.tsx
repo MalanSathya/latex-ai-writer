@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { FileText, Sparkles } from 'lucide-react';
+import { signUpSchema, signInSchema } from '@/lib/validation';
 
 export default function Auth() {
   const { signUp, signIn } = useAuth();
@@ -20,6 +21,15 @@ export default function Auth() {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
     const fullName = formData.get('fullName') as string;
+
+    // Validate inputs
+    const validation = signUpSchema.safeParse({ email, password, fullName });
+    if (!validation.success) {
+      const firstError = validation.error.errors[0];
+      toast.error(firstError.message);
+      setLoading(false);
+      return;
+    }
     
     const { error } = await signUp(email, password, fullName);
     
@@ -39,6 +49,15 @@ export default function Auth() {
     const formData = new FormData(e.currentTarget);
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
+
+    // Validate inputs
+    const validation = signInSchema.safeParse({ email, password });
+    if (!validation.success) {
+      const firstError = validation.error.errors[0];
+      toast.error(firstError.message);
+      setLoading(false);
+      return;
+    }
     
     const { error } = await signIn(email, password);
     
